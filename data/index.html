@@ -43,7 +43,7 @@
         <div class="col-12 action__content__automatic-control mt-4">
           <div class="form-group">
             <label class="text-info" for="humidity_control"><h5>Selecione a umidade</h5></label>
-            <input type="range" class="form-control-range" id="humidity_control" disabled="true">
+            <input type="range" class="form-control-range" id="humidity_control" disabled="true" onchange="return updateHumidityOnBoard($(this))">
           </div>
         </div>
       </div>
@@ -95,6 +95,10 @@
         else {
           console.log("ERROR - Switch not recognized.");
         }
+      }
+      
+      function updateHumidityOnBoard($p_HumidityBar) {
+          controlValve(AUTOMATIC_MODE, true, $p_HumidityBar.val());
       }
 
       function updateHumidityBar(p_Humidity) {

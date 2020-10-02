@@ -7,9 +7,10 @@
 //On board LED Connected to GPIO2
 #define LED 2  
 #define HUMIDITY_SENSOR A0  
+#define CONTROL_INTERVAL 1000
+#define HUMIDITY_DIFF_THRESHOLD 5
 #define AUTOMATIC_MODE "auto"
 #define MANUAL_MODE "manual"
-#define CONTROL_INTERVAL 1000
 
 int ledStatus = LOW;
 
@@ -96,6 +97,7 @@ void automaticControl() {
     Serial.print("Executing automatic control at time: ");
     Serial.println(millis());
 
+    int realHumidity = getHumidity();
     int newValveState = LOW;
     if((targetHumidity > realHumidity - HUMIDITY_DIFF_THRESHOLD) && (targetHumidity < realHumidity + HUMIDITY_DIFF_THRESHOLD)) {
       newValveState = LOW;
@@ -114,7 +116,6 @@ void automaticControl() {
 }
 
 void toggleValve(int state) {
-  Serial.print("Controlling mock valve... Status is: ");
   Serial.println(state);
   digitalWrite(LED, state);
 }
