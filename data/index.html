@@ -116,31 +116,6 @@
           return 0;
         });
       }
-      
-      function controlHumidity() {
-        let v_AutomaticControl = $('#automatic_control_switch').prop('checked'),
-            v_SetHumidity = $('#humidity_control').val(),
-            v_CurrentHumidity = 0;
-        
-        v_CurrentHumidity = g_HumidityReading;
-
-        if(v_AutomaticControl === false) {
-          clearInterval(interval);
-        }
-
-        if((v_SetHumidity > v_CurrentHumidity - 3) && (v_SetHumidity < v_CurrentHumidity + 3)) {
-          console.log("1. Set humidity: " + v_SetHumidity + "   -   Current humidity: " + v_CurrentHumidity + "   -   Valve state: " + g_ValveState);
-           g_ValveState ? controlValve() : '';
-        }
-        else if(v_SetHumidity < v_CurrentHumidity - 3) {
-          console.log("2. Set humidity: " + v_SetHumidity + "   -   Current humidity: " + v_CurrentHumidity + "   -   Valve state: " + g_ValveState);
-           g_ValveState ? controlValve() : '';
-        }
-        else if(v_SetHumidity > v_CurrentHumidity + 3) {
-          console.log("3. Set humidity: " + v_SetHumidity + "   -   Current humidity: " + v_CurrentHumidity + "   -   Valve state: " + g_ValveState);
-           g_ValveState ? '' : controlValve();
-        }
-      }
 
       function controlValve(...args) {
         let v_QueryParams = 
