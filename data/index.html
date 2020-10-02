@@ -68,23 +68,33 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
     <script>
+      let g_HumidityReading = 0;
+      let g_ValveState = false;
+      
+      const AUTOMATIC_MODE = "auto";
+      const MANUAL_MODE = "manual";
+      
       $(document).ready(() => {
-        setInterval(getHumiditySensor, 1000);
+        setInterval(getHumidityReading, 1000);
       });
 
       function toggleSwitch($p_Switch) {
-        let v_SwitchId = $p_Switch.parents('.action__content__toggle').find('.action__content__input').attr('id'),
-            $v_ValveSwitch = $('#valve_switch'),
-            $v_HumidityControl = $('#humidity_control');
+        let $v_ValveSwitch = $('#valve_switch'),
+            $v_HumidityControl = $('#humidity_control'),
+            v_ControlState = $p_Switch.prop('checked');
 
-        if(v_SwitchId === 'automatic_control_switch') {
-          $v_ValveSwitch.prop('checked', $v_ValveSwitch.prop('checked') === true ? '' : $v_ValveSwitch.prop('checked'));
-          $v_ValveSwitch.prop('disabled', $v_ValveSwitch.prop('disabled') === true ? '' : 'disabled');
-          $v_HumidityControl.prop('disabled', $v_HumidityControl.prop('disabled') === true ? '' : 'disabled');
+        if($p_Switch.is("#automatic_control_switch")) {
+          $v_ValveSwitch.prop('checked', v_ControlState ? '' : $v_ValveSwitch.prop('checked'));
+          $v_ValveSwitch.prop('disabled', v_ControlState);
+          $v_HumidityControl.prop('disabled', !v_ControlState);
+          controlValve(AUTOMATIC_MODE, v_ControlState, $('#humidity_control').val());
         }
-
-        controlValve($p_Switch.prop('checked') === true, $v_HumidityControl.prop('disabled') === true ? false : $v_HumidityControl.val());
-        getHumiditySensor(); 
+        else if($p_Switch.is($v_ValveSwitch)) {
+          controlValve(MANUAL_MODE, v_ControlState);
+        }
+        else {
+          console.log("ERROR - Switch not recognized.");
+        }
       }
 
       function updateHumidityBar(p_Humidity) {
@@ -95,43 +105,55 @@
         $v_HumidityBarValue.html(p_Humidity + '%');
       }
 
-      function getHumiditySensor() {
-//        var xhttp = new XMLHttpRequest();
-//        var v_Humidity = 0;
-//        xhttp.onreadystatechange = function() {
-//          if (this.readyState == 4 && this.status == 200) {
-//            v_Humidity = Number(this.responseText);
-//            gauges.forEach(function (gauge) {     
-//              console.log(v_Humidity)
-//              gauge.write(v_Humidity);
-//            });
-//          }
-//        };
-//        xhttp.open("GET", "/get-humidity-sensor", false);
-//        xhttp.send();
-        
+      function getHumidityReading() {        
         $.get('/humidity', (v_Data) => {
           let v_Humidity = Number(v_Data);
+          g_HumidityReading = v_Humidity;
           updateHumidityBar(v_Humidity);
+          return v_Humidity;
         }).fail(function() {
           console.log("Humidity reading error!");
+          return 0;
         });
       }
+      
+      function controlHumidity() {
+        let v_AutomaticControl = $('#automatic_control_switch').prop('checked'),
+            v_SetHumidity = $('#humidity_control').val(),
+            v_CurrentHumidity = 0;
+        
+        v_CurrentHumidity = g_HumidityReading;
 
-      function controlValve($p_AutomaticControl, $p_HumidityValue) {
-        var xhttp = new XMLHttpRequest();
-              var v_Humidity=0;
-        xhttp.onreadystatechange = function() {
-          if (this.readyState == 4 && this.status == 200) {
-        v_Humidity = Number(this.responseText);
-              gauges.forEach(function (gauge) {     
-          console.log(v_Humidity)
-              gauge.write(v_Humidity);
-            });
-          }
-        };
-        xhttp.open("GET", "/get-humidity-sensor", false);
-        xhttp.send();
+        if(v_AutomaticControl === false) {
+          clearInterval(interval);
+        }
+
+        if((v_SetHumidity > v_CurrentHumidity - 3) && (v_SetHumidity < v_CurrentHumidity + 3)) {
+          console.log("1. Set humidity: " + v_SetHumidity + "   -   Current humidity: " + v_CurrentHumidity + "   -   Valve state: " + g_ValveState);
+           g_ValveState ? controlValve() : '';
+        }
+        else if(v_SetHumidity < v_CurrentHumidity - 3) {
+          console.log("2. Set humidity: " + v_SetHumidity + "   -   Current humidity: " + v_CurrentHumidity + "   -   Valve state: " + g_ValveState);
+           g_ValveState ? controlValve() : '';
+        }
+        else if(v_SetHumidity > v_CurrentHumidity + 3) {
+          console.log("3. Set humidity: " + v_SetHumidity + "   -   Current humidity: " + v_CurrentHumidity + "   -   Valve state: " + g_ValveState);
+           g_ValveState ? '' : controlValve();
+        }
+      }
+
+      function controlValve(...args) {
+        let v_QueryParams = 
+            'mode=' + args[0] + 
+            '&state=' + (args[1] ? 1 : 0) + 
+            (args[2] ? '&humidity=' + args[2] : ''); 
+        
+        $.get('/control-valve?' + v_QueryParams, (v_Data) => {
+          let v_Response = Number(v_Data);
+          g_ValveState = v_Response;
+        }).fail(function() {
+          console.log("Valve control error!");
+        });
       }
     </script>
   </body>
